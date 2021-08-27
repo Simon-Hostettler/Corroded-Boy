@@ -1,3 +1,4 @@
-fn main() {
-    println!("Hello, world!");
-}
+mod cpu;
+mod register;
+
+fn main() {}

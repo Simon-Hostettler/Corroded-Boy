@@ -19,7 +19,7 @@ pub enum Registers16b {
     HL,
 }
 
-pub enum Flag {
+pub enum Flags {
     Z = 0b1000000,
     N = 0b0100000,
     H = 0b0010000,
@@ -34,6 +34,7 @@ impl RegisterFile {
             f: 0,
             b: 0,
             c: 0,
+            d: 0,
             e: 0,
             h: 0,
             l: 0,
@@ -72,15 +73,15 @@ impl RegisterFile {
         }
     }
 
-    pub fn set_flag(&mut self, flag: Flag, set: bool) {
+    pub fn set_flag(&mut self, flag: Flags, set: bool) {
         if set {
-            self.f = self.f | flag;
+            self.f = self.f | flag as u8;
         } else {
-            self.f = self.f & !flag;
+            self.f = self.f & !(flag as u8);
         }
     }
 
-    pub fn get_flag(&self, flag: Flag) {
-        self.f & flag != 0
+    pub fn get_flag(&self, flag: Flags) -> bool {
+        self.f & (flag as u8) != 0
     }
 }
