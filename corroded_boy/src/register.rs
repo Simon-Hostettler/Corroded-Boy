@@ -11,7 +11,16 @@ pub struct RegisterFile {
     pub pc: u16, //Program Counter
     pub sp: u16, //Stack Pointer
 }
-
+pub enum Registers8b {
+    A,
+    F,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+}
 pub enum Registers16b {
     AF,
     BC,
@@ -20,10 +29,10 @@ pub enum Registers16b {
 }
 
 pub enum Flags {
-    Z = 0b1000000,
-    N = 0b0100000,
-    H = 0b0010000,
-    C = 0b0001000,
+    FZ = 0b1000000,
+    FN = 0b0100000,
+    FH = 0b0010000,
+    FC = 0b0001000,
     //4 lsb are not used
 }
 
@@ -40,6 +49,19 @@ impl RegisterFile {
             l: 0,
             sp: 0xFFFE,
             pc: 0x0000,
+        }
+    }
+
+    pub fn read_8b(&self, regaddr: Registers8b) -> u8 {
+        match regaddr {
+            Registers8b::A => self.a,
+            Registers8b::F => self.f,
+            Registers8b::B => self.b,
+            Registers8b::C => self.c,
+            Registers8b::D => self.d,
+            Registers8b::E => self.e,
+            Registers8b::H => self.h,
+            Registers8b::L => self.l,
         }
     }
 

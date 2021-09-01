@@ -1,11 +1,14 @@
 use crate::memory::Memory;
-use crate::register::Flags::{C, H, N, Z};
+use crate::register::Flags::{FC, FH, FN, FZ};
 use crate::register::RegisterFile;
 use crate::register::Registers16b::{AF, BC, DE, HL};
+use crate::register::Registers8b;
+use crate::register::Registers8b::{A, B, C, D, E, F, H, L};
 
 pub struct CPU {
     pub reg: RegisterFile,
     pub mem: Memory,
+    pub halted: bool,
 }
 
 impl CPU {
@@ -13,6 +16,7 @@ impl CPU {
         CPU {
             reg: RegisterFile::new(),
             mem: Memory::new(),
+            halted: false,
         }
     }
 
@@ -144,28 +148,28 @@ impl CPU {
             0x6D => self.reg.l = self.reg.l,
             0x6E => self.reg.l = self.mem.rb(self.reg.read_16b(HL)),
             0x6F => self.reg.l = self.reg.a,
-            0x70 => {}
-            0x71 => {}
-            0x72 => {}
-            0x73 => {}
-            0x74 => {}
-            0x75 => {}
-            0x76 => {}
-            0x77 => {}
-            0x78 => {}
-            0x79 => {}
-            0x7A => {}
-            0x7B => {}
-            0x7C => {}
-            0x7D => {}
-            0x7E => {}
-            0x7F => {}
-            0x80 => {}
-            0x81 => {}
-            0x82 => {}
-            0x83 => {}
-            0x84 => {}
-            0x85 => {}
+            0x70 => self.mem.wb(self.reg.read_16b(HL), self.reg.b),
+            0x71 => self.mem.wb(self.reg.read_16b(HL), self.reg.c),
+            0x72 => self.mem.wb(self.reg.read_16b(HL), self.reg.d),
+            0x73 => self.mem.wb(self.reg.read_16b(HL), self.reg.e),
+            0x74 => self.mem.wb(self.reg.read_16b(HL), self.reg.h),
+            0x75 => self.mem.wb(self.reg.read_16b(HL), self.reg.l),
+            0x76 => self.halted = true,
+            0x77 => self.mem.wb(self.reg.read_16b(HL), self.reg.a),
+            0x78 => self.reg.a = self.reg.b,
+            0x79 => self.reg.a = self.reg.c,
+            0x7A => self.reg.a = self.reg.d,
+            0x7B => self.reg.a = self.reg.e,
+            0x7C => self.reg.a = self.reg.h,
+            0x7D => self.reg.a = self.reg.l,
+            0x7E => self.reg.a = self.mem.rb(self.reg.read_16b(HL)),
+            0x7F => self.reg.a = self.reg.a,
+            0x80 => self.alu_add(B),
+            0x81 => self.alu_add(C),
+            0x82 => self.alu_add(D),
+            0x83 => self.alu_add(E),
+            0x84 => self.alu_add(H),
+            0x85 => self.alu_add(L),
             0x86 => {}
             0x87 => {}
             0x88 => {}
@@ -289,5 +293,27 @@ impl CPU {
             0xFE => {}
             0xFF => {}
         }
+    }
+
+    pub fn alu_add(&mut self, operand: Registers8b) {
+        let (op1, op2) = (self.reg.a, self.reg.read_8b(operand));
+        let result = op1.wrapping_add(op2);
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg.set_flag(FH, (op1 & 0x0F) + (op2 & 0x0F) > 0x0F);
+        self.reg.set_flag(FC, (op1 as u16) + (op2 as u16) > 0xFF);
+    }
+    pub fn alu_adc(&mut self, operand: Registers8b) {
+        let carry = self.reg.get_flag(FC) as u8;
+        let (op1, op2) = (self.reg.a, self.reg.read_8b(operand));
+        let result = op1.wrapping_add(op2).wrapping_add(carry);
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg
+            .set_flag(FH, (op1 & 0x0F) + (op2 & 0x0F) + carry > 0x0F);
+        self.reg
+            .set_flag(FC, (op1 as u16) + (op2 as u16) + (carry as u16) > 0xFF);
     }
 }
