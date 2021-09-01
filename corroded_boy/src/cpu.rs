@@ -196,38 +196,38 @@ impl CPU {
             0x9D => self.alu_sbc(self.reg.l),
             0x9E => self.alu_sbc(self.mem.rb(self.reg.read_16b(HL))),
             0x9F => self.alu_sbc(self.reg.a),
-            0xA0 => {}
-            0xA1 => {}
-            0xA2 => {}
-            0xA3 => {}
-            0xA4 => {}
-            0xA5 => {}
-            0xA6 => {}
-            0xA7 => {}
-            0xA8 => {}
-            0xA9 => {}
-            0xAA => {}
-            0xAB => {}
-            0xAC => {}
-            0xAD => {}
-            0xAE => {}
-            0xAF => {}
-            0xB0 => {}
-            0xB1 => {}
-            0xB2 => {}
-            0xB3 => {}
-            0xB4 => {}
-            0xB5 => {}
-            0xB6 => {}
-            0xB7 => {}
-            0xB8 => {}
-            0xB9 => {}
-            0xBA => {}
-            0xBB => {}
-            0xBC => {}
-            0xBD => {}
-            0xBE => {}
-            0xBF => {}
+            0xA0 => self.alu_and(self.reg.b),
+            0xA1 => self.alu_and(self.reg.c),
+            0xA2 => self.alu_and(self.reg.d),
+            0xA3 => self.alu_and(self.reg.e),
+            0xA4 => self.alu_and(self.reg.h),
+            0xA5 => self.alu_and(self.reg.l),
+            0xA6 => self.alu_and(self.mem.rb(self.reg.read_16b(HL))),
+            0xA7 => self.alu_and(self.reg.a),
+            0xA8 => self.alu_xor(self.reg.b),
+            0xA9 => self.alu_xor(self.reg.c),
+            0xAA => self.alu_xor(self.reg.d),
+            0xAB => self.alu_xor(self.reg.e),
+            0xAC => self.alu_xor(self.reg.h),
+            0xAD => self.alu_xor(self.reg.l),
+            0xAE => self.alu_xor(self.mem.rb(self.reg.read_16b(HL))),
+            0xAF => self.alu_xor(self.reg.a),
+            0xB0 => self.alu_or(self.reg.b),
+            0xB1 => self.alu_or(self.reg.c),
+            0xB2 => self.alu_or(self.reg.d),
+            0xB3 => self.alu_or(self.reg.e),
+            0xB4 => self.alu_or(self.reg.h),
+            0xB5 => self.alu_or(self.reg.l),
+            0xB6 => self.alu_or(self.mem.rb(self.reg.read_16b(HL))),
+            0xB7 => self.alu_or(self.reg.a),
+            0xB8 => self.alu_cp(self.reg.b),
+            0xB9 => self.alu_cp(self.reg.c),
+            0xBA => self.alu_cp(self.reg.d),
+            0xBB => self.alu_cp(self.reg.e),
+            0xBC => self.alu_cp(self.reg.h),
+            0xBD => self.alu_cp(self.reg.l),
+            0xBE => self.alu_cp(self.mem.rb(self.reg.read_16b(HL))),
+            0xBF => self.alu_cp(self.reg.a),
             0xC0 => {}
             0xC1 => {}
             0xC2 => {}
@@ -338,5 +338,37 @@ impl CPU {
             .set_flag(FH, (op1 & 0x0F) < (operand & 0x0F) + carry);
         self.reg
             .set_flag(FC, (op1 as u16) < (operand as u16) + (carry as u16));
+    }
+    pub fn alu_and(&mut self, operand: u8) {
+        let result = self.reg.a & operand;
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg.set_flag(FH, true);
+        self.reg.set_flag(FC, false);
+    }
+    pub fn alu_xor(&mut self, operand: u8) {
+        let result = self.reg.a ^ operand;
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg.set_flag(FH, false);
+        self.reg.set_flag(FC, false);
+    }
+    pub fn alu_or(&mut self, operand: u8) {
+        let result = self.reg.a | operand;
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg.set_flag(FH, false);
+        self.reg.set_flag(FC, false);
+    }
+    pub fn alu_cp(&mut self, operand: u8) {
+        let op1 = self.reg.a;
+        let result = op1.wrapping_sub(operand);
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, true);
+        self.reg.set_flag(FH, (op1 & 0x0F) < (operand & 0x0F));
+        self.reg.set_flag(FC, (op1 as u16) < (operand as u16));
     }
 }
