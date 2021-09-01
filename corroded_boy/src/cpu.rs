@@ -164,38 +164,38 @@ impl CPU {
             0x7D => self.reg.a = self.reg.l,
             0x7E => self.reg.a = self.mem.rb(self.reg.read_16b(HL)),
             0x7F => self.reg.a = self.reg.a,
-            0x80 => self.alu_add(B),
-            0x81 => self.alu_add(C),
-            0x82 => self.alu_add(D),
-            0x83 => self.alu_add(E),
-            0x84 => self.alu_add(H),
-            0x85 => self.alu_add(L),
-            0x86 => {}
-            0x87 => {}
-            0x88 => {}
-            0x89 => {}
-            0x8A => {}
-            0x8B => {}
-            0x8C => {}
-            0x8D => {}
-            0x8E => {}
-            0x8F => {}
-            0x90 => {}
-            0x91 => {}
-            0x92 => {}
-            0x93 => {}
-            0x94 => {}
-            0x95 => {}
-            0x96 => {}
-            0x97 => {}
-            0x98 => {}
-            0x99 => {}
-            0x9A => {}
-            0x9B => {}
-            0x9C => {}
-            0x9D => {}
-            0x9E => {}
-            0x9F => {}
+            0x80 => self.alu_add(self.reg.b),
+            0x81 => self.alu_add(self.reg.c),
+            0x82 => self.alu_add(self.reg.d),
+            0x83 => self.alu_add(self.reg.e),
+            0x84 => self.alu_add(self.reg.h),
+            0x85 => self.alu_add(self.reg.l),
+            0x86 => self.alu_add(self.mem.rb(self.reg.read_16b(HL))),
+            0x87 => self.alu_add(self.reg.a),
+            0x88 => self.alu_adc(self.reg.b),
+            0x89 => self.alu_adc(self.reg.c),
+            0x8A => self.alu_adc(self.reg.d),
+            0x8B => self.alu_adc(self.reg.e),
+            0x8C => self.alu_adc(self.reg.h),
+            0x8D => self.alu_adc(self.reg.l),
+            0x8E => self.alu_add(self.mem.rb(self.reg.read_16b(HL))),
+            0x8F => self.alu_adc(self.reg.a),
+            0x90 => self.alu_sub(self.reg.b),
+            0x91 => self.alu_sub(self.reg.c),
+            0x92 => self.alu_sub(self.reg.d),
+            0x93 => self.alu_sub(self.reg.e),
+            0x94 => self.alu_sub(self.reg.h),
+            0x95 => self.alu_sub(self.reg.l),
+            0x96 => self.alu_sub(self.mem.rb(self.reg.read_16b(HL))),
+            0x97 => self.alu_sub(self.reg.a),
+            0x98 => self.alu_sbc(self.reg.b),
+            0x99 => self.alu_sbc(self.reg.c),
+            0x9A => self.alu_sbc(self.reg.d),
+            0x9B => self.alu_sbc(self.reg.e),
+            0x9C => self.alu_sbc(self.reg.h),
+            0x9D => self.alu_sbc(self.reg.l),
+            0x9E => self.alu_sbc(self.mem.rb(self.reg.read_16b(HL))),
+            0x9F => self.alu_sbc(self.reg.a),
             0xA0 => {}
             0xA1 => {}
             0xA2 => {}
@@ -295,25 +295,48 @@ impl CPU {
         }
     }
 
-    pub fn alu_add(&mut self, operand: Registers8b) {
-        let (op1, op2) = (self.reg.a, self.reg.read_8b(operand));
-        let result = op1.wrapping_add(op2);
+    pub fn alu_add(&mut self, operand: u8) {
+        let op1 = self.reg.a;
+        let result = op1.wrapping_add(operand);
         self.reg.a = result;
         self.reg.set_flag(FZ, result == 0);
         self.reg.set_flag(FN, false);
-        self.reg.set_flag(FH, (op1 & 0x0F) + (op2 & 0x0F) > 0x0F);
-        self.reg.set_flag(FC, (op1 as u16) + (op2 as u16) > 0xFF);
+        self.reg
+            .set_flag(FH, (op1 & 0x0F) + (operand & 0x0F) > 0x0F);
+        self.reg
+            .set_flag(FC, (op1 as u16) + (operand as u16) > 0xFF);
     }
-    pub fn alu_adc(&mut self, operand: Registers8b) {
+    pub fn alu_adc(&mut self, operand: u8) {
         let carry = self.reg.get_flag(FC) as u8;
-        let (op1, op2) = (self.reg.a, self.reg.read_8b(operand));
-        let result = op1.wrapping_add(op2).wrapping_add(carry);
+        let op1 = self.reg.a;
+        let result = op1.wrapping_add(operand).wrapping_add(carry);
         self.reg.a = result;
         self.reg.set_flag(FZ, result == 0);
         self.reg.set_flag(FN, false);
         self.reg
-            .set_flag(FH, (op1 & 0x0F) + (op2 & 0x0F) + carry > 0x0F);
+            .set_flag(FH, (op1 & 0x0F) + (operand & 0x0F) + carry > 0x0F);
         self.reg
-            .set_flag(FC, (op1 as u16) + (op2 as u16) + (carry as u16) > 0xFF);
+            .set_flag(FC, (op1 as u16) + (operand as u16) + (carry as u16) > 0xFF);
+    }
+    pub fn alu_sub(&mut self, operand: u8) {
+        let op1 = self.reg.a;
+        let result = op1.wrapping_sub(operand);
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, true);
+        self.reg.set_flag(FH, (op1 & 0x0F) < (operand & 0x0F));
+        self.reg.set_flag(FC, (op1 as u16) < (operand as u16));
+    }
+    pub fn alu_sbc(&mut self, operand: u8) {
+        let carry = self.reg.get_flag(FC) as u8;
+        let op1 = self.reg.a;
+        let result = op1.wrapping_sub(operand).wrapping_sub(carry);
+        self.reg.a = result;
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, true);
+        self.reg
+            .set_flag(FH, (op1 & 0x0F) < (operand & 0x0F) + carry);
+        self.reg
+            .set_flag(FC, (op1 as u16) < (operand as u16) + (carry as u16));
     }
 }
