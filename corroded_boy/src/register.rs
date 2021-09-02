@@ -52,7 +52,7 @@ impl RegisterFile {
         }
     }
 
-    pub fn read_8b(&self, regaddr: Registers8b) -> u8 {
+    pub fn read_8b(&self, regaddr: &Registers8b) -> u8 {
         match regaddr {
             Registers8b::A => self.a,
             Registers8b::F => self.f,
@@ -62,6 +62,19 @@ impl RegisterFile {
             Registers8b::E => self.e,
             Registers8b::H => self.h,
             Registers8b::L => self.l,
+        }
+    }
+
+    pub fn write_8b(&mut self, regaddr: &Registers8b, value: u8) {
+        match regaddr {
+            Registers8b::A => self.a = value,
+            Registers8b::F => self.f = value,
+            Registers8b::B => self.b = value,
+            Registers8b::C => self.c = value,
+            Registers8b::D => self.d = value,
+            Registers8b::E => self.e = value,
+            Registers8b::H => self.h = value,
+            Registers8b::L => self.l = value,
         }
     }
 

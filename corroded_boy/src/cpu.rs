@@ -39,65 +39,74 @@ impl CPU {
             0x02 => {
                 self.mem.wb(self.reg.read_16b(BC), self.reg.a);
             }
-            0x03 => {}
-            0x04 => {}
-            0x05 => {}
+            0x03 => self
+                .reg
+                .write_16b(BC, self.reg.read_16b(BC).wrapping_add(1)),
+            0x04 => self.alu_inc(B),
+            0x05 => self.alu_dec(B),
             0x06 => {}
             0x07 => {}
             0x08 => {}
             0x09 => {}
             0x0A => {}
             0x0B => {}
-            0x0C => {}
-            0x0D => {}
+            0x0C => self.alu_inc(C),
+            0x0D => self.alu_dec(C),
             0x0E => {}
             0x0F => {}
             0x10 => {}
-            0x11 => {}
+            0x11 => {
+                let d16 = self.fetch_word();
+                self.reg.write_16b(DE, d16);
+            }
             0x12 => {}
-            0x13 => {}
-            0x14 => {}
-            0x15 => {}
+            0x13 => self
+                .reg
+                .write_16b(DE, self.reg.read_16b(DE).wrapping_add(1)),
+            0x14 => self.alu_inc(D),
+            0x15 => self.alu_dec(D),
             0x16 => {}
             0x17 => {}
             0x18 => {}
             0x19 => {}
             0x1A => {}
             0x1B => {}
-            0x1C => {}
-            0x1D => {}
+            0x1C => self.alu_inc(E),
+            0x1D => self.alu_dec(E),
             0x1E => {}
             0x1F => {}
             0x20 => {}
             0x21 => {}
             0x22 => {}
-            0x23 => {}
-            0x24 => {}
-            0x25 => {}
+            0x23 => self
+                .reg
+                .write_16b(HL, self.reg.read_16b(HL).wrapping_add(1)),
+            0x24 => self.alu_inc(H),
+            0x25 => self.alu_dec(H),
             0x26 => {}
             0x27 => {}
             0x28 => {}
             0x29 => {}
             0x2A => {}
             0x2B => {}
-            0x2C => {}
-            0x2D => {}
+            0x2C => self.alu_inc(L),
+            0x2D => self.alu_dec(L),
             0x2E => {}
             0x2F => {}
             0x30 => {}
             0x31 => {}
             0x32 => {}
-            0x33 => {}
-            0x34 => {}
-            0x35 => {}
+            0x33 => self.reg.sp = self.reg.sp.wrapping_add(1),
+            0x34 => self.mem_inc(self.reg.read_16b(HL)),
+            0x35 => self.mem_dec(self.reg.read_16b(HL)),
             0x36 => {}
             0x37 => {}
             0x38 => {}
             0x39 => {}
             0x3A => {}
             0x3B => {}
-            0x3C => {}
-            0x3D => {}
+            0x3C => self.alu_inc(A),
+            0x3D => self.alu_dec(A),
             0x3E => {}
             0x3F => {}
             0x40 => self.reg.b = self.reg.b,
@@ -370,5 +379,37 @@ impl CPU {
         self.reg.set_flag(FN, true);
         self.reg.set_flag(FH, (op1 & 0x0F) < (operand & 0x0F));
         self.reg.set_flag(FC, (op1 as u16) < (operand as u16));
+    }
+
+    pub fn alu_inc(&mut self, reg: Registers8b) {
+        let result = self.reg.read_8b(&reg).wrapping_add(1);
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg
+            .set_flag(FH, (self.reg.read_8b(&reg) as u16) + 1 > 0x0F);
+        self.reg.write_8b(&reg, result);
+    }
+    pub fn alu_dec(&mut self, reg: Registers8b) {
+        let result = self.reg.read_8b(&reg).wrapping_sub(1);
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, true);
+        self.reg.set_flag(FH, self.reg.read_8b(&reg) == 0);
+        self.reg.write_8b(&reg, result);
+    }
+    pub fn mem_inc(&mut self, addr: u16) {
+        let operand = self.mem.rb(addr);
+        let result = operand.wrapping_add(1);
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, false);
+        self.reg.set_flag(FH, (operand as u16) + 1 > 0x0F);
+        self.mem.wb(addr, result);
+    }
+    pub fn mem_dec(&mut self, addr: u16) {
+        let operand = self.mem.rb(addr);
+        let result = operand.wrapping_sub(1);
+        self.reg.set_flag(FZ, result == 0);
+        self.reg.set_flag(FN, true);
+        self.reg.set_flag(FH, operand == 0);
+        self.mem.wb(addr, result);
     }
 }
