@@ -26,6 +26,7 @@ pub enum Registers16b {
     BC,
     DE,
     HL,
+    SP,
 }
 
 pub enum Flags {
@@ -84,6 +85,7 @@ impl RegisterFile {
             Registers16b::BC => (self.b as u16) << 8 | self.c as u16,
             Registers16b::DE => (self.d as u16) << 8 | self.e as u16,
             Registers16b::HL => (self.h as u16) << 8 | self.l as u16,
+            Registers16b::SP => self.sp,
         }
     }
 
@@ -105,6 +107,9 @@ impl RegisterFile {
                 self.h = (value >> 8) as u8;
                 self.l = (value & 0x00FF) as u8;
             }
+            Registers16b::SP => {
+                self.sp = value;
+            }
         }
     }
 
@@ -116,7 +121,25 @@ impl RegisterFile {
         }
     }
 
+    pub fn set_flags(&mut self, f1: bool, f2: bool, f3: bool, f4: bool) {
+        self.set_flag(Flags::FZ, f1);
+        self.set_flag(Flags::FN, f1);
+        self.set_flag(Flags::FH, f1);
+        self.set_flag(Flags::FC, f1);
+    }
+
     pub fn get_flag(&self, flag: Flags) -> bool {
         self.f & (flag as u8) != 0
+    }
+
+    pub fn hl_inc(&mut self) -> u16 {
+        let val = self.read_16b(Registers16b::HL);
+        self.write_16b(Registers16b::HL, val.wrapping_add(1));
+        val
+    }
+    pub fn hl_dec(&mut self) -> u16 {
+        let val = self.read_16b(Registers16b::HL);
+        self.write_16b(Registers16b::HL, val.wrapping_sub(1));
+        val
     }
 }
