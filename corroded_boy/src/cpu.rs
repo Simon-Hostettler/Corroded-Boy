@@ -8,7 +8,8 @@ use crate::register::{Registers16b, Registers8b};
 pub struct CPU {
     pub reg: RegisterFile,
     pub mem: Memory,
-    pub halted: bool,
+    pub is_halted: bool,
+    pub ime: bool,
 }
 
 impl CPU {
@@ -16,23 +17,19 @@ impl CPU {
         CPU {
             reg: RegisterFile::new(),
             mem: Memory::new(),
-            halted: false,
+            is_halted: false,
+            ime: false,
         }
-    }
-
-    fn fetch_byte(&self) -> u8 {
-        0 // placeholder
-    }
-
-    fn fetch_word(&self) -> u16 {
-        0 // placeholder
     }
 
     fn execute(&mut self) {
         let operation = self.fetch_byte();
         match operation {
             0x00 => {} //nop
-            0x01 => self.reg.write_16b(BC, self.fetch_word()),
+            0x01 => {
+                let val = self.fetch_word();
+                self.reg.write_16b(BC, val);
+            }
             0x02 => self.mem.write_byte(self.reg.read_16b(BC), self.reg.a),
             0x03 => self
                 .reg
@@ -41,7 +38,10 @@ impl CPU {
             0x05 => self.alu_dec(B),
             0x06 => self.reg.b = self.fetch_byte(),
             0x07 => self.reg.a = self.alu_rlc(self.reg.a),
-            0x08 => self.mem.write_word(self.fetch_word(), self.reg.sp),
+            0x08 => {
+                let val = self.fetch_word();
+                self.mem.write_word(val, self.reg.sp);
+            }
             0x09 => self.alu_add_16b(BC),
             0x0A => self.reg.a = self.mem.read_byte(self.reg.read_16b(BC)),
             0x0B => self
@@ -52,7 +52,10 @@ impl CPU {
             0x0E => self.reg.c = self.fetch_byte(),
             0x0F => self.reg.a = self.alu_rrc(self.reg.a),
             0x10 => {} //TODO STOP FUNCTION
-            0x11 => self.reg.write_16b(DE, self.fetch_word()),
+            0x11 => {
+                let val = self.fetch_word();
+                self.reg.write_16b(DE, val);
+            }
             0x12 => self.mem.write_byte(self.reg.read_16b(DE), self.reg.a),
             0x13 => self
                 .reg
@@ -72,7 +75,10 @@ impl CPU {
             0x1E => self.reg.e = self.fetch_byte(),
             0x1F => self.reg.a = self.alu_rr(self.reg.a),
             0x20 => self.jr(!self.reg.get_flag(FZ)),
-            0x21 => self.reg.write_16b(HL, self.fetch_word()),
+            0x21 => {
+                let val = self.fetch_word();
+                self.reg.write_16b(HL, val);
+            }
             0x22 => self.mem.write_byte(self.reg.hl_inc(), self.reg.a),
             0x23 => self
                 .reg
@@ -101,9 +107,10 @@ impl CPU {
             0x33 => self.reg.sp = self.reg.sp.wrapping_add(1),
             0x34 => self.mem_inc(self.reg.read_16b(HL)),
             0x35 => self.mem_dec(self.reg.read_16b(HL)),
-            0x36 => self
-                .mem
-                .write_byte(self.reg.read_16b(HL), self.fetch_byte()),
+            0x36 => {
+                let val = self.fetch_byte();
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
             0x37 => self
                 .reg
                 .set_flags(self.reg.get_flag(FZ), false, false, true),
@@ -171,7 +178,7 @@ impl CPU {
             0x73 => self.mem.write_byte(self.reg.read_16b(HL), self.reg.e),
             0x74 => self.mem.write_byte(self.reg.read_16b(HL), self.reg.h),
             0x75 => self.mem.write_byte(self.reg.read_16b(HL), self.reg.l),
-            0x76 => self.halted = true,
+            0x76 => self.is_halted = true,
             0x77 => self.mem.write_byte(self.reg.read_16b(HL), self.reg.a),
             0x78 => self.reg.a = self.reg.b,
             0x79 => self.reg.a = self.reg.c,
@@ -245,6 +252,340 @@ impl CPU {
             0xBD => self.alu_cp(self.reg.l),
             0xBE => self.alu_cp(self.mem.read_byte(self.reg.read_16b(HL))),
             0xBF => self.alu_cp(self.reg.a),
+            0xC0 => self.ret(!self.reg.get_flag(FZ)),
+            0xC1 => {
+                let word = self.pop_stack();
+                self.reg.write_16b(BC, word);
+            }
+            0xC2 => self.jp(!self.reg.get_flag(FZ)),
+            0xC3 => self.jp(true),
+            0xC4 => self.call(!self.reg.get_flag(FZ)),
+            0xC5 => {
+                let word = self.reg.read_16b(BC);
+                self.push_stack(word);
+            }
+            0xC6 => {
+                let val = self.fetch_byte();
+                self.alu_add(val);
+            }
+            0xC7 => self.rst(0x00),
+            0xC8 => self.ret(self.reg.get_flag(FZ)),
+            0xC9 => self.ret(true),
+            0xCA => self.jp(self.reg.get_flag(FZ)),
+            0xCB => self.execute_cb(),
+            0xCC => self.call(self.reg.get_flag(FZ)),
+            0xCD => self.call(true),
+            0xCE => {
+                let val = self.fetch_byte();
+                self.alu_adc(val);
+            }
+            0xCF => self.rst(0x08),
+            0xD0 => self.ret(!self.reg.get_flag(FC)),
+            0xD1 => {
+                let word = self.pop_stack();
+                self.reg.write_16b(DE, word);
+            }
+            0xD2 => self.jp(!self.reg.get_flag(FC)),
+            0xD3 => {} //unused
+            0xD4 => self.call(!self.reg.get_flag(FC)),
+            0xD5 => {
+                let word = self.reg.read_16b(DE);
+                self.push_stack(word);
+            }
+            0xD6 => {
+                let val = self.fetch_byte();
+                self.alu_sub(val);
+            }
+            0xD7 => self.rst(0x10),
+            0xD8 => self.ret(self.reg.get_flag(FC)),
+            0xD9 => {
+                self.ret(true);
+                self.ime = true;
+            }
+            0xDA => self.jp(self.reg.get_flag(FC)),
+            0xDB => {} //unused
+            0xDC => self.call(self.reg.get_flag(FC)),
+            0xDD => {} //unused
+            0xDE => {
+                let val = self.fetch_byte();
+                self.alu_sbc(val);
+            }
+            0xDF => self.rst(0x18),
+            0xE0 => {
+                let addr = self.fetch_byte() as u16 + 0xFF00;
+                self.mem.write_byte(addr, self.reg.a);
+            }
+            0xE1 => {
+                let word = self.pop_stack();
+                self.reg.write_16b(HL, word);
+            }
+            0xE2 => {
+                let addr = self.reg.c as u16 + 0xFF00;
+                self.mem.write_byte(addr, self.reg.a);
+            }
+            0xE3 => {} //unused
+            0xE4 => {} //unused
+            0xE5 => {
+                let word = self.reg.read_16b(HL);
+                self.push_stack(word);
+            }
+            0xE6 => {
+                let val = self.fetch_byte();
+                self.alu_and(val);
+            }
+            0xE7 => self.rst(0x20),
+            0xE8 => self.reg.sp = self.alu_add_imm(self.reg.pc),
+            0xE9 => self.reg.pc = self.reg.read_16b(HL),
+            0xEA => {
+                let addr = self.fetch_word();
+                self.mem.write_byte(addr, self.reg.a);
+            }
+            0xEB => {} //unused
+            0xEC => {} //unused
+            0xED => {} //unused
+            0xEE => {
+                let val = self.fetch_byte();
+                self.alu_xor(val);
+            }
+            0xEF => self.rst(0x28),
+            0xF0 => {
+                let addr = self.reg.a as u16 + 0xFF00;
+                self.reg.a = self.mem.read_byte(addr);
+            }
+            0xF1 => {
+                let word = self.pop_stack();
+                self.reg.write_16b(AF, word);
+            }
+            0xF2 => {
+                let addr = self.reg.c as u16 + 0xFF00;
+                self.reg.a = self.mem.read_byte(addr);
+            }
+            0xF3 => self.ime = false,
+            0xF4 => {} //unused
+            0xF5 => {
+                let word = self.reg.read_16b(AF);
+                self.push_stack(word);
+            }
+            0xF6 => {
+                let val = self.fetch_byte();
+                self.alu_or(val);
+            }
+            0xF7 => self.rst(0x30),
+            0xF8 => {
+                let val = self.alu_add_imm(self.reg.pc);
+                self.reg.write_16b(HL, val);
+            }
+            0xF9 => self.reg.sp = self.reg.read_16b(HL),
+            0xFA => {
+                let addr = self.fetch_word();
+                self.reg.a = self.mem.read_byte(addr);
+            }
+            0xFB => self.ime = true,
+            0xFC => {} //unused
+            0xFD => {} //unused
+            0xFE => {
+                let val = self.fetch_byte();
+                self.alu_cp(val);
+            }
+            0xFF => self.rst(0x38),
+        }
+    }
+
+    fn execute_cb(&mut self) {
+        let operation = self.fetch_byte();
+        match operation {
+            0x00 => {}
+            0x01 => {}
+            0x02 => {}
+            0x03 => {}
+            0x04 => {}
+            0x05 => {}
+            0x06 => {}
+            0x07 => {}
+            0x08 => {}
+            0x09 => {}
+            0x0A => {}
+            0x0B => {}
+            0x0C => {}
+            0x0D => {}
+            0x0E => {}
+            0x0F => {}
+            0x10 => {}
+            0x11 => {}
+            0x12 => {}
+            0x13 => {}
+            0x14 => {}
+            0x15 => {}
+            0x16 => {}
+            0x17 => {}
+            0x18 => {}
+            0x19 => {}
+            0x1A => {}
+            0x1B => {}
+            0x1C => {}
+            0x1D => {}
+            0x1E => {}
+            0x1F => {}
+            0x20 => {}
+            0x21 => {}
+            0x22 => {}
+            0x23 => {}
+            0x24 => {}
+            0x25 => {}
+            0x26 => {}
+            0x27 => {}
+            0x28 => {}
+            0x29 => {}
+            0x2A => {}
+            0x2B => {}
+            0x2C => {}
+            0x2D => {}
+            0x2E => {}
+            0x2F => {}
+            0x30 => {}
+            0x31 => {}
+            0x32 => {}
+            0x33 => {}
+            0x34 => {}
+            0x35 => {}
+            0x36 => {}
+            0x37 => {}
+            0x38 => {}
+            0x39 => {}
+            0x3A => {}
+            0x3B => {}
+            0x3C => {}
+            0x3D => {}
+            0x3E => {}
+            0x3F => {}
+            0x40 => {}
+            0x41 => {}
+            0x42 => {}
+            0x43 => {}
+            0x44 => {}
+            0x45 => {}
+            0x46 => {}
+            0x47 => {}
+            0x48 => {}
+            0x49 => {}
+            0x4A => {}
+            0x4B => {}
+            0x4C => {}
+            0x4D => {}
+            0x4E => {}
+            0x4F => {}
+            0x50 => {}
+            0x51 => {}
+            0x52 => {}
+            0x53 => {}
+            0x54 => {}
+            0x55 => {}
+            0x56 => {}
+            0x57 => {}
+            0x58 => {}
+            0x59 => {}
+            0x5A => {}
+            0x5B => {}
+            0x5C => {}
+            0x5D => {}
+            0x5E => {}
+            0x5F => {}
+            0x60 => {}
+            0x61 => {}
+            0x62 => {}
+            0x63 => {}
+            0x64 => {}
+            0x65 => {}
+            0x66 => {}
+            0x67 => {}
+            0x68 => {}
+            0x69 => {}
+            0x6A => {}
+            0x6B => {}
+            0x6C => {}
+            0x6D => {}
+            0x6E => {}
+            0x6F => {}
+            0x70 => {}
+            0x71 => {}
+            0x72 => {}
+            0x73 => {}
+            0x74 => {}
+            0x75 => {}
+            0x76 => {}
+            0x77 => {}
+            0x78 => {}
+            0x79 => {}
+            0x7A => {}
+            0x7B => {}
+            0x7C => {}
+            0x7D => {}
+            0x7E => {}
+            0x7F => {}
+            0x80 => {}
+            0x81 => {}
+            0x82 => {}
+            0x83 => {}
+            0x84 => {}
+            0x85 => {}
+            0x86 => {}
+            0x87 => {}
+            0x88 => {}
+            0x89 => {}
+            0x8A => {}
+            0x8B => {}
+            0x8C => {}
+            0x8D => {}
+            0x8E => {}
+            0x8F => {}
+            0x90 => {}
+            0x91 => {}
+            0x92 => {}
+            0x93 => {}
+            0x94 => {}
+            0x95 => {}
+            0x96 => {}
+            0x97 => {}
+            0x98 => {}
+            0x99 => {}
+            0x9A => {}
+            0x9B => {}
+            0x9C => {}
+            0x9D => {}
+            0x9E => {}
+            0x9F => {}
+            0xA0 => {}
+            0xA1 => {}
+            0xA2 => {}
+            0xA3 => {}
+            0xA4 => {}
+            0xA5 => {}
+            0xA6 => {}
+            0xA7 => {}
+            0xA8 => {}
+            0xA9 => {}
+            0xAA => {}
+            0xAB => {}
+            0xAC => {}
+            0xAD => {}
+            0xAE => {}
+            0xAF => {}
+            0xB0 => {}
+            0xB1 => {}
+            0xB2 => {}
+            0xB3 => {}
+            0xB4 => {}
+            0xB5 => {}
+            0xB6 => {}
+            0xB7 => {}
+            0xB8 => {}
+            0xB9 => {}
+            0xBA => {}
+            0xBB => {}
+            0xBC => {}
+            0xBD => {}
+            0xBE => {}
+            0xBF => {}
             0xC0 => {}
             0xC1 => {}
             0xC2 => {}
@@ -256,7 +597,7 @@ impl CPU {
             0xC8 => {}
             0xC9 => {}
             0xCA => {}
-            0xCB => self.execute_cb(),
+            0xCB => {}
             0xCC => {}
             0xCD => {}
             0xCE => {}
@@ -312,7 +653,27 @@ impl CPU {
         }
     }
 
-    fn execute_cb(&mut self) {}
+    fn fetch_byte(&mut self) -> u8 {
+        let byte = self.mem.read_byte(self.reg.sp);
+        self.reg.sp = self.reg.sp.wrapping_add(1);
+        byte
+    }
+
+    fn fetch_word(&mut self) -> u16 {
+        let word = self.mem.read_word(self.reg.sp);
+        self.reg.sp = self.reg.sp.wrapping_add(2);
+        word
+    }
+
+    fn push_stack(&mut self, value: u16) {
+        self.reg.sp -= 2;
+        self.mem.write_word(self.reg.sp, value);
+    }
+    fn pop_stack(&mut self) -> u16 {
+        let word = self.mem.read_word(self.reg.sp);
+        self.reg.sp += 2;
+        word
+    }
 
     fn alu_add(&mut self, operand: u8) {
         let op1 = self.reg.a;
@@ -325,6 +686,7 @@ impl CPU {
         self.reg
             .set_flag(FC, (op1 as u16) + (operand as u16) > 0xFF);
     }
+
     fn alu_add_16b(&mut self, operand: Registers16b) {
         let (val1, val2) = (self.reg.read_16b(HL), self.reg.read_16b(operand));
         let result = val1.wrapping_add(val2);
@@ -334,6 +696,16 @@ impl CPU {
         self.reg.set_flag(FC, (val1 as u32 + val2 as u32) > 0xFFFF);
         self.reg.write_16b(HL, result);
     }
+
+    fn alu_add_imm(&mut self, operand: u16) -> u16 {
+        let imm = self.fetch_byte() as u16;
+        let res = operand.wrapping_add(imm);
+        self.reg.set_flag(FH, (operand & 0xF) + (imm & 0xF) > 0xF);
+        self.reg
+            .set_flag(FH, (operand & 0xFF) + (imm & 0xFF) > 0xFF);
+        res
+    }
+
     fn alu_adc(&mut self, operand: u8) {
         let carry = self.reg.get_flag(FC) as u8;
         let op1 = self.reg.a;
@@ -346,6 +718,7 @@ impl CPU {
         self.reg
             .set_flag(FC, (op1 as u16) + (operand as u16) + (carry as u16) > 0xFF);
     }
+
     fn alu_sub(&mut self, operand: u8) {
         let op1 = self.reg.a;
         let result = op1.wrapping_sub(operand);
@@ -355,6 +728,7 @@ impl CPU {
         self.reg.set_flag(FH, (op1 & 0x0F) < (operand & 0x0F));
         self.reg.set_flag(FC, (op1 as u16) < (operand as u16));
     }
+
     fn alu_sbc(&mut self, operand: u8) {
         let carry = self.reg.get_flag(FC) as u8;
         let op1 = self.reg.a;
@@ -367,21 +741,25 @@ impl CPU {
         self.reg
             .set_flag(FC, (op1 as u16) < (operand as u16) + (carry as u16));
     }
+
     fn alu_and(&mut self, operand: u8) {
         let result = self.reg.a & operand;
         self.reg.a = result;
         self.reg.set_flags(result == 0, false, true, false);
     }
+
     fn alu_xor(&mut self, operand: u8) {
         let result = self.reg.a ^ operand;
         self.reg.a = result;
         self.reg.set_flags(result == 0, false, false, false);
     }
+
     fn alu_or(&mut self, operand: u8) {
         let result = self.reg.a | operand;
         self.reg.a = result;
         self.reg.set_flags(result == 0, false, false, false);
     }
+
     fn alu_cp(&mut self, operand: u8) {
         let op1 = self.reg.a;
         let result = op1.wrapping_sub(operand);
@@ -399,6 +777,7 @@ impl CPU {
             .set_flag(FH, (self.reg.read_8b(&reg) as u16) + 1 > 0x0F);
         self.reg.write_8b(&reg, result);
     }
+
     fn alu_dec(&mut self, reg: Registers8b) {
         let result = self.reg.read_8b(&reg).wrapping_sub(1);
         self.reg.set_flag(FZ, result == 0);
@@ -406,6 +785,7 @@ impl CPU {
         self.reg.set_flag(FH, self.reg.read_8b(&reg) == 0);
         self.reg.write_8b(&reg, result);
     }
+
     fn alu_daa(&mut self) {
         let mut val = self.reg.a;
         let mut correction = 0;
@@ -429,6 +809,7 @@ impl CPU {
             .set_flags(val == 0, flag_n, false, correction >= 0x60);
         self.reg.a = val;
     }
+
     fn mem_inc(&mut self, addr: u16) {
         let operand = self.mem.read_byte(addr);
         let result = operand.wrapping_add(1);
@@ -437,6 +818,7 @@ impl CPU {
         self.reg.set_flag(FH, (operand as u16) + 1 > 0x0F);
         self.mem.write_byte(addr, result);
     }
+
     fn mem_dec(&mut self, addr: u16) {
         let operand = self.mem.read_byte(addr);
         let result = operand.wrapping_sub(1);
@@ -445,35 +827,68 @@ impl CPU {
         self.reg.set_flag(FH, operand == 0);
         self.mem.write_byte(addr, result);
     }
+
     fn alu_rlc(&mut self, operand: u8) -> u8 {
         let msb = (operand & 0x80) >> 7;
         let result = (operand << 1) | msb;
         self.reg.set_flags(false, false, false, msb != 0);
         result
     }
+
     fn alu_rl(&mut self, operand: u8) -> u8 {
         let msb = (operand & 0x80) >> 7;
         let result = (operand << 1) | self.reg.get_flag(FC) as u8;
         self.reg.set_flags(false, false, false, msb != 0);
         result
     }
+
     fn alu_rrc(&mut self, operand: u8) -> u8 {
         let lsb = (operand & 0x01) << 7;
         let result = (operand >> 1) | lsb;
         self.reg.set_flags(false, false, false, lsb != 0);
         result
     }
+
     fn alu_rr(&mut self, operand: u8) -> u8 {
         let lsb = (operand & 0x01) << 7;
         let result = (operand >> 1) | ((self.reg.get_flag(FC) as u8) << 7);
         self.reg.set_flags(false, false, false, lsb != 0);
         result
     }
+
     fn jr(&mut self, condition: bool) {
         if condition {
             self.reg.pc = self.reg.pc.wrapping_add(self.fetch_byte() as u16);
         } else {
             self.reg.pc = self.reg.pc.wrapping_add(1);
         }
+    }
+
+    fn ret(&mut self, condition: bool) {
+        if condition {
+            self.reg.pc = self.pop_stack();
+        }
+    }
+
+    fn jp(&mut self, condition: bool) {
+        if condition {
+            self.reg.pc = self.fetch_word();
+        } else {
+            self.reg.pc = self.reg.pc.wrapping_add(2);
+        }
+    }
+
+    fn call(&mut self, condition: bool) {
+        if condition {
+            self.push_stack(self.reg.pc);
+            self.reg.pc = self.fetch_word();
+        } else {
+            self.reg.pc = self.reg.pc.wrapping_add(2);
+        }
+    }
+
+    fn rst(&mut self, pointer: u8) {
+        self.push_stack(self.reg.pc);
+        self.reg.pc = pointer as u16;
     }
 }
