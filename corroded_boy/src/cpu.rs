@@ -558,134 +558,182 @@ impl CPU {
             0x7D => self.test_bit(self.reg.l, 7),
             0x7E => self.test_bit(self.mem.read_byte(self.reg.read_16b(HL)), 7),
             0x7F => self.test_bit(self.reg.a, 7),
-            0x80 => {}
-            0x81 => {}
-            0x82 => {}
-            0x83 => {}
-            0x84 => {}
-            0x85 => {}
-            0x86 => {}
-            0x87 => {}
-            0x88 => {}
-            0x89 => {}
-            0x8A => {}
-            0x8B => {}
-            0x8C => {}
-            0x8D => {}
-            0x8E => {}
-            0x8F => {}
-            0x90 => {}
-            0x91 => {}
-            0x92 => {}
-            0x93 => {}
-            0x94 => {}
-            0x95 => {}
-            0x96 => {}
-            0x97 => {}
-            0x98 => {}
-            0x99 => {}
-            0x9A => {}
-            0x9B => {}
-            0x9C => {}
-            0x9D => {}
-            0x9E => {}
-            0x9F => {}
-            0xA0 => {}
-            0xA1 => {}
-            0xA2 => {}
-            0xA3 => {}
-            0xA4 => {}
-            0xA5 => {}
-            0xA6 => {}
-            0xA7 => {}
-            0xA8 => {}
-            0xA9 => {}
-            0xAA => {}
-            0xAB => {}
-            0xAC => {}
-            0xAD => {}
-            0xAE => {}
-            0xAF => {}
-            0xB0 => {}
-            0xB1 => {}
-            0xB2 => {}
-            0xB3 => {}
-            0xB4 => {}
-            0xB5 => {}
-            0xB6 => {}
-            0xB7 => {}
-            0xB8 => {}
-            0xB9 => {}
-            0xBA => {}
-            0xBB => {}
-            0xBC => {}
-            0xBD => {}
-            0xBE => {}
-            0xBF => {}
-            0xC0 => {}
-            0xC1 => {}
-            0xC2 => {}
-            0xC3 => {}
-            0xC4 => {}
-            0xC5 => {}
-            0xC6 => {}
-            0xC7 => {}
-            0xC8 => {}
-            0xC9 => {}
-            0xCA => {}
-            0xCB => {}
-            0xCC => {}
-            0xCD => {}
-            0xCE => {}
-            0xCF => {}
-            0xD0 => {}
-            0xD1 => {}
-            0xD2 => {}
-            0xD3 => {}
-            0xD4 => {}
-            0xD5 => {}
-            0xD6 => {}
-            0xD7 => {}
-            0xD8 => {}
-            0xD9 => {}
-            0xDA => {}
-            0xDB => {}
-            0xDC => {}
-            0xDD => {}
-            0xDE => {}
-            0xDF => {}
-            0xE0 => {}
-            0xE1 => {}
-            0xE2 => {}
-            0xE3 => {}
-            0xE4 => {}
-            0xE5 => {}
-            0xE6 => {}
-            0xE7 => {}
-            0xE8 => {}
-            0xE9 => {}
-            0xEA => {}
-            0xEB => {}
-            0xEC => {}
-            0xED => {}
-            0xEE => {}
-            0xEF => {}
-            0xF0 => {}
-            0xF1 => {}
-            0xF2 => {}
-            0xF3 => {}
-            0xF4 => {}
-            0xF5 => {}
-            0xF6 => {}
-            0xF7 => {}
-            0xF8 => {}
-            0xF9 => {}
-            0xFA => {}
-            0xFB => {}
-            0xFC => {}
-            0xFD => {}
-            0xFE => {}
-            0xFF => {}
+            0x80 => self.reg.b = self.reset_bit(self.reg.b, 0),
+            0x81 => self.reg.c = self.reset_bit(self.reg.c, 0),
+            0x82 => self.reg.d = self.reset_bit(self.reg.d, 0),
+            0x83 => self.reg.e = self.reset_bit(self.reg.e, 0),
+            0x84 => self.reg.h = self.reset_bit(self.reg.h, 0),
+            0x85 => self.reg.l = self.reset_bit(self.reg.l, 0),
+            0x86 => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 0);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0x87 => self.reg.a = self.reset_bit(self.reg.a, 0),
+            0x88 => self.reg.b = self.reset_bit(self.reg.b, 1),
+            0x89 => self.reg.c = self.reset_bit(self.reg.c, 1),
+            0x8A => self.reg.d = self.reset_bit(self.reg.d, 1),
+            0x8B => self.reg.e = self.reset_bit(self.reg.e, 1),
+            0x8C => self.reg.h = self.reset_bit(self.reg.h, 1),
+            0x8D => self.reg.l = self.reset_bit(self.reg.l, 1),
+            0x8E => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 1);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0x8F => self.reg.a = self.reset_bit(self.reg.a, 1),
+            0x90 => self.reg.b = self.reset_bit(self.reg.b, 2),
+            0x91 => self.reg.c = self.reset_bit(self.reg.c, 2),
+            0x92 => self.reg.d = self.reset_bit(self.reg.d, 2),
+            0x93 => self.reg.e = self.reset_bit(self.reg.e, 2),
+            0x94 => self.reg.h = self.reset_bit(self.reg.h, 2),
+            0x95 => self.reg.l = self.reset_bit(self.reg.l, 2),
+            0x96 => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 2);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0x97 => self.reg.a = self.reset_bit(self.reg.a, 2),
+            0x98 => self.reg.b = self.reset_bit(self.reg.b, 3),
+            0x99 => self.reg.c = self.reset_bit(self.reg.c, 3),
+            0x9A => self.reg.d = self.reset_bit(self.reg.d, 3),
+            0x9B => self.reg.e = self.reset_bit(self.reg.e, 3),
+            0x9C => self.reg.h = self.reset_bit(self.reg.h, 3),
+            0x9D => self.reg.l = self.reset_bit(self.reg.l, 3),
+            0x9E => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 3);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0x9F => self.reg.a = self.reset_bit(self.reg.a, 3),
+            0xA0 => self.reg.b = self.reset_bit(self.reg.b, 4),
+            0xA1 => self.reg.c = self.reset_bit(self.reg.c, 4),
+            0xA2 => self.reg.d = self.reset_bit(self.reg.d, 4),
+            0xA3 => self.reg.e = self.reset_bit(self.reg.e, 4),
+            0xA4 => self.reg.h = self.reset_bit(self.reg.h, 4),
+            0xA5 => self.reg.l = self.reset_bit(self.reg.l, 4),
+            0xA6 => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 4);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xA7 => self.reg.a = self.reset_bit(self.reg.a, 4),
+            0xA8 => self.reg.b = self.reset_bit(self.reg.b, 5),
+            0xA9 => self.reg.c = self.reset_bit(self.reg.c, 5),
+            0xAA => self.reg.d = self.reset_bit(self.reg.d, 5),
+            0xAB => self.reg.e = self.reset_bit(self.reg.e, 5),
+            0xAC => self.reg.h = self.reset_bit(self.reg.h, 5),
+            0xAD => self.reg.l = self.reset_bit(self.reg.l, 5),
+            0xAE => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 5);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xAF => self.reg.a = self.reset_bit(self.reg.a, 5),
+            0xB0 => self.reg.b = self.reset_bit(self.reg.b, 6),
+            0xB1 => self.reg.c = self.reset_bit(self.reg.c, 6),
+            0xB2 => self.reg.d = self.reset_bit(self.reg.d, 6),
+            0xB3 => self.reg.e = self.reset_bit(self.reg.e, 6),
+            0xB4 => self.reg.h = self.reset_bit(self.reg.h, 6),
+            0xB5 => self.reg.l = self.reset_bit(self.reg.l, 6),
+            0xB6 => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 6);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xB7 => self.reg.a = self.reset_bit(self.reg.a, 6),
+            0xB8 => self.reg.b = self.reset_bit(self.reg.b, 7),
+            0xB9 => self.reg.c = self.reset_bit(self.reg.c, 7),
+            0xBA => self.reg.d = self.reset_bit(self.reg.d, 7),
+            0xBB => self.reg.e = self.reset_bit(self.reg.e, 7),
+            0xBC => self.reg.h = self.reset_bit(self.reg.h, 7),
+            0xBD => self.reg.l = self.reset_bit(self.reg.l, 7),
+            0xBE => {
+                let val = self.reset_bit(self.mem.read_byte(self.reg.read_16b(HL)), 7);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xBF => self.reg.a = self.reset_bit(self.reg.a, 7),
+            0xC0 => self.reg.b = self.set_bit(self.reg.b, 0),
+            0xC1 => self.reg.c = self.set_bit(self.reg.c, 0),
+            0xC2 => self.reg.d = self.set_bit(self.reg.d, 0),
+            0xC3 => self.reg.e = self.set_bit(self.reg.e, 0),
+            0xC4 => self.reg.h = self.set_bit(self.reg.h, 0),
+            0xC5 => self.reg.l = self.set_bit(self.reg.l, 0),
+            0xC6 => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 0);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xC7 => self.reg.a = self.set_bit(self.reg.a, 0),
+            0xC8 => self.reg.b = self.set_bit(self.reg.b, 1),
+            0xC9 => self.reg.c = self.set_bit(self.reg.c, 1),
+            0xCA => self.reg.d = self.set_bit(self.reg.d, 1),
+            0xCB => self.reg.e = self.set_bit(self.reg.e, 1),
+            0xCC => self.reg.h = self.set_bit(self.reg.h, 1),
+            0xCD => self.reg.l = self.set_bit(self.reg.l, 1),
+            0xCE => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 1);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xCF => self.reg.a = self.set_bit(self.reg.a, 1),
+            0xD0 => self.reg.b = self.set_bit(self.reg.b, 2),
+            0xD1 => self.reg.c = self.set_bit(self.reg.c, 2),
+            0xD2 => self.reg.d = self.set_bit(self.reg.d, 2),
+            0xD3 => self.reg.e = self.set_bit(self.reg.e, 2),
+            0xD4 => self.reg.h = self.set_bit(self.reg.h, 2),
+            0xD5 => self.reg.l = self.set_bit(self.reg.l, 2),
+            0xD6 => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 2);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xD7 => self.reg.a = self.set_bit(self.reg.a, 2),
+            0xD8 => self.reg.b = self.set_bit(self.reg.b, 3),
+            0xD9 => self.reg.c = self.set_bit(self.reg.c, 3),
+            0xDA => self.reg.d = self.set_bit(self.reg.d, 3),
+            0xDB => self.reg.e = self.set_bit(self.reg.e, 3),
+            0xDC => self.reg.h = self.set_bit(self.reg.h, 3),
+            0xDD => self.reg.l = self.set_bit(self.reg.l, 3),
+            0xDE => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 3);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xDF => self.reg.a = self.set_bit(self.reg.a, 3),
+            0xE0 => self.reg.b = self.set_bit(self.reg.b, 4),
+            0xE1 => self.reg.c = self.set_bit(self.reg.c, 4),
+            0xE2 => self.reg.d = self.set_bit(self.reg.d, 4),
+            0xE3 => self.reg.e = self.set_bit(self.reg.e, 4),
+            0xE4 => self.reg.h = self.set_bit(self.reg.h, 4),
+            0xE5 => self.reg.l = self.set_bit(self.reg.l, 4),
+            0xE6 => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 4);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xE7 => self.reg.a = self.set_bit(self.reg.a, 4),
+            0xE8 => self.reg.b = self.set_bit(self.reg.b, 5),
+            0xE9 => self.reg.c = self.set_bit(self.reg.c, 5),
+            0xEA => self.reg.d = self.set_bit(self.reg.d, 5),
+            0xEB => self.reg.e = self.set_bit(self.reg.e, 5),
+            0xEC => self.reg.h = self.set_bit(self.reg.h, 5),
+            0xED => self.reg.l = self.set_bit(self.reg.l, 5),
+            0xEE => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 5);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xEF => self.reg.a = self.set_bit(self.reg.a, 5),
+            0xF0 => self.reg.b = self.set_bit(self.reg.b, 6),
+            0xF1 => self.reg.c = self.set_bit(self.reg.c, 6),
+            0xF2 => self.reg.d = self.set_bit(self.reg.d, 6),
+            0xF3 => self.reg.e = self.set_bit(self.reg.e, 6),
+            0xF4 => self.reg.h = self.set_bit(self.reg.h, 6),
+            0xF5 => self.reg.l = self.set_bit(self.reg.l, 6),
+            0xF6 => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 6);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xF7 => self.reg.a = self.set_bit(self.reg.a, 6),
+            0xF8 => self.reg.b = self.set_bit(self.reg.b, 7),
+            0xF9 => self.reg.c = self.set_bit(self.reg.c, 7),
+            0xFA => self.reg.d = self.set_bit(self.reg.d, 7),
+            0xFB => self.reg.e = self.set_bit(self.reg.e, 7),
+            0xFC => self.reg.h = self.set_bit(self.reg.h, 7),
+            0xFD => self.reg.l = self.set_bit(self.reg.l, 7),
+            0xFE => {
+                let val = self.set_bit(self.mem.read_byte(self.reg.read_16b(HL)), 7);
+                self.mem.write_byte(self.reg.read_16b(HL), val);
+            }
+            0xFF => self.reg.a = self.set_bit(self.reg.a, 7),
         }
     }
 
